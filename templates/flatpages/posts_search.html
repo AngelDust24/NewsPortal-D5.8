@@ -1,0 +1,87 @@
+<!--  наследуемся от шаблона default.html, который мы создавали для flatpages -->
+{% extends 'flatpages/default.html' %}
+
+{% load custom_filters %}
+
+{% load custom_tags %}
+
+<!-- Название у нас будет post -->
+{% block title %}
+Post
+{% endblock title %}
+
+<!-- В контенте на странице мы выводим все посты -->
+{% block content %}
+    <h1>Все посты</h1>
+    <!-- Добавляем форму, которая объединяет набор полей, которые будут отправляться в запросе -->
+    <form action="" method="get">
+        <!-- Переменная, которую мы передали через контекст, может сгенерировать нам форму с полями -->
+        {{ filterset.form.as_p }}
+        <!-- Добавим кнопку отправки данных формы -->
+        <input type="submit" value="Найти" />
+    </form>
+    <p>Всго постов: {{ posts|length }}</p>
+   <hr>
+    <!--Теперь будем проверять не request.user.is_authenticated, а конкретные права -->
+    {% if perms.simpleapp.add_post %}
+    <a href="{% url 'post_create' %}">Добавить пост</a>
+    {% endif %}
+   {% if posts %}
+       <table> <!-- Начинаем описывать таблицу -->
+           <tr> <!-- Добавляем строку -->
+               <td>Заголовок</td>
+               <td>Дата публикации</td>
+               <td>Содержание</td>
+               <!-- Условие получается составным. -->
+                {% if perms.simpleapp.change_post or perms.simpleapp.delete_post %}
+                <td>Действия</td>
+                {% endif %}
+           </tr> <!-- Не забываем закрыть HTML-тег строки -->
+           {% for post in posts %}
+           <tr>
+               <!-- Не забываем, что переменные в шаблоне ничем не отличаются
+                от переменных в Python. Здесь также можно получать доступ к
+                полям объекта модели. Например, здесь мы выводим имя,
+                в следующем столбце описание, и т.д.  -->
+               <td>{{ post.title|censor }}</td>
+               <td>{{ post.date_creation|date:'d M Y' }}</td>
+               <td>{{ post.text|truncatewords:20|censor }}</td>
+               <td>
+                    <!-- А здесь доступ для каждой ссылки теперь будем проверять отдельно -->
+                    {% if perms.simpleapp.change_post %}
+                    <a href="{% url 'post_update' pk=post.id %}">Изменить</a>
+                    {% endif %}
+                    {% if perms.simpleapp.delete_post %}
+                    <a href="{% url 'post_delete' post.id %}">Удалить</a>
+                    {% endif %}
+                </td>
+           </tr>
+           {% endfor %}
+       </table> <!-- ... и таблицы -->
+   {% else %}
+       <h2>Постов нет!</h2>
+   {% endif %}
+    <!-- Пагинация -->
+   <!-- Информация о предыдущих страницах #} -->
+   {% if page_obj.has_previous %}
+       <a href="?{% url_replace page=1 %}">1</a>
+       {% if page_obj.previous_page_number != 1 %}
+           ...
+           <a href="?{% url_replace page=page_obj.previous_page_number %}">{{ page_obj.previous_page_number }}</a>
+       {% endif %}
+   {% endif %}
+
+   <!-- Информация о текущей странице #} -->
+   {{ page_obj.number }}
+
+   <!-- Информация о следующих страницах -->
+   {% if page_obj.has_next %}
+       <a href="?{% url_replace page=page_obj.next_page_number %}">{{ page_obj.next_page_number }}</a>
+       {% if paginator.num_pages != page_obj.next_page_number %}
+           ...
+           <a href="?{% url_replace page=page_obj.paginator.num_pages %}">{{ page_obj.paginator.num_pages }}</a>
+       {% endif %}
+   {% endif %}
+{% endblock content %}
+
+
